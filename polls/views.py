@@ -3,10 +3,8 @@ from .models import Question, Choice
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views import generic
-
-
-
-# Create your views here.
+from django.utils import timezone
+from django.http import Http404
 
 
 class IndexView(generic.ListView):
@@ -15,12 +13,20 @@ class IndexView(generic.ListView):
 
     def get_queryset(self):
         """Return the last five published questions."""
-        return Question.objects.order_by('-pub_date')[:5]
+        return Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
 
 
 class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
+
+    def get_object(self, queryset=None):
+        pk = self.kwargs.get('pk')
+        q = get_object_or_404(Question, pk=pk)
+        if q.pub_date < timezone.now():
+            return q
+        else:
+            raise Http404('Ох, нет объекта;)')
 
 
 class ResultsView(generic.DetailView):
@@ -45,8 +51,3 @@ def vote(request, question_id):
         # with POST data. This prevents data from being posted twice if a
         # user hits the Back button.
         return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
-
-
-def results(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    return render(request, 'polls/results.html', {'question': question})
