@@ -20,13 +20,11 @@ class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
 
-    def get_object(self, queryset=None):
-        pk = self.kwargs.get('pk')
-        q = get_object_or_404(Question, pk=pk)
-        if q.pub_date < timezone.now():
-            return q
-        else:
-            raise Http404('Ох, нет объекта;)')
+    def get_queryset(self):
+        """
+        Excludes any questions that aren't published yet.
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now())
 
 
 class ResultsView(generic.DetailView):
